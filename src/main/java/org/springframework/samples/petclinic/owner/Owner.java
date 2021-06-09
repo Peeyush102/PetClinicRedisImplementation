@@ -32,6 +32,8 @@ import javax.validation.constraints.NotEmpty;
 import org.springframework.beans.support.MutableSortDefinition;
 import org.springframework.beans.support.PropertyComparator;
 import org.springframework.core.style.ToStringCreator;
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.samples.petclinic.model.Person;
 
 /**

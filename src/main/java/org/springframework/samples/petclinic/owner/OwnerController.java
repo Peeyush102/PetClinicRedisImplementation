@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.samples.petclinic.visit.VisitRepository;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -27,6 +29,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.validation.Valid;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Map;
 
@@ -45,9 +48,16 @@ class OwnerController {
 
 	private VisitRepository visits;
 
-	public OwnerController(OwnerRepository clinicService, VisitRepository visits) {
+	private RedisTemplate<String, Object> redisTemplate;
+
+	private HashOperations hashOperations;
+
+	public OwnerController(OwnerRepository clinicService, VisitRepository visits,
+			RedisTemplate<String, Object> redisTemplate) {
 		this.owners = clinicService;
 		this.visits = visits;
+		this.redisTemplate = redisTemplate;
+		hashOperations = redisTemplate.opsForHash();
 	}
 
 	@InitBinder
@@ -69,6 +79,7 @@ class OwnerController {
 		}
 		else {
 			this.owners.save(owner);
+			this.hashOperations.put("OWNER", owner.getId(), owner);
 			return "redirect:/owners/" + owner.getId();
 		}
 	}
@@ -81,14 +92,17 @@ class OwnerController {
 
 	@GetMapping("/owners")
 	public String processFindForm(Owner owner, BindingResult result, Map<String, Object> model) {
-
 		// allow parameterless GET request for /owners to return all records
 		if (owner.getLastName() == null) {
 			owner.setLastName(""); // empty string signifies broadest possible search
 		}
 
 		// find owners by last name
-		Collection<Owner> results = this.owners.findByLastName(owner.getLastName());
+		Map<String, Owner> resultsMap = this.hashOperations.entries("OWNER");
+		Collection<Owner> results = new ArrayList<Owner>();
+		for (Map.Entry<String, Owner> mp : resultsMap.entrySet()) {
+			results.add(mp.getValue());
+		}
 		if (results.isEmpty()) {
 			// no owners found
 			result.rejectValue("lastName", "notFound", "not found");
@@ -108,7 +122,9 @@ class OwnerController {
 
 	@GetMapping("/owners/{ownerId}/edit")
 	public String initUpdateOwnerForm(@PathVariable("ownerId") int ownerId, Model model) {
-		Owner owner = this.owners.findById(ownerId);
+		Owner owner = (Owner) hashOperations.get("OWNER", ownerId);
+		if (owner == null)
+			owner = this.owners.findById(ownerId);
 		model.addAttribute(owner);
 		return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
 	}
@@ -121,6 +137,7 @@ class OwnerController {
 		}
 		else {
 			owner.setId(ownerId);
+			this.hashOperations.put("OWNER", ownerId, owner);
 			this.owners.save(owner);
 			return "redirect:/owners/{ownerId}";
 		}
@@ -134,7 +151,9 @@ class OwnerController {
 	@GetMapping("/owners/{ownerId}")
 	public ModelAndView showOwner(@PathVariable("ownerId") int ownerId) {
 		ModelAndView mav = new ModelAndView("owners/ownerDetails");
-		Owner owner = this.owners.findById(ownerId);
+		Owner owner = (Owner) this.hashOperations.get("OWNER", ownerId);
+		if (owner == null)
+			owner = this.owners.findById(ownerId);
 		for (Pet pet : owner.getPets()) {
 			pet.setVisitsInternal(visits.findByPetId(pet.getId()));
 		}

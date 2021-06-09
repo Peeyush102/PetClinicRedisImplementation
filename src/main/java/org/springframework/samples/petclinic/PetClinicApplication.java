@@ -18,6 +18,10 @@ package org.springframework.samples.petclinic;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
+import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
+import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
 
 /**
  * PetClinic Spring Boot Application.
@@ -27,6 +31,21 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  */
 @SpringBootApplication(proxyBeanMethods = false)
 public class PetClinicApplication {
+
+	@Bean
+	JedisConnectionFactory jedisConnectionFactory() {
+		RedisStandaloneConfiguration configuration = new RedisStandaloneConfiguration();
+		configuration.setHostName("localhost");
+		configuration.setPort(6379);
+		return new JedisConnectionFactory(configuration);
+	}
+
+	@Bean
+	public RedisTemplate<String, Object> redisTemplate() {
+		RedisTemplate<String, Object> template = new RedisTemplate<>();
+		template.setConnectionFactory(jedisConnectionFactory());
+		return template;
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(PetClinicApplication.class, args);
