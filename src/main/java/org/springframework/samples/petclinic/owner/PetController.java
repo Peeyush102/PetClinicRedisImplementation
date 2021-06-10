@@ -15,6 +15,8 @@
  */
 package org.springframework.samples.petclinic.owner;
 
+import org.springframework.data.redis.core.HashOperations;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.ModelMap;
 import org.springframework.util.StringUtils;
@@ -24,6 +26,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * @author Juergen Hoeller
@@ -40,9 +43,18 @@ class PetController {
 
 	private final OwnerRepository owners;
 
-	public PetController(PetRepository pets, OwnerRepository owners) {
+	private RedisTemplate<String, Object> redisTemplate;
+
+	private HashOperations hashOperations;
+
+	public PetController(PetRepository pets, OwnerRepository owners, RedisTemplate<String, Object> redisTemplate) {
 		this.pets = pets;
 		this.owners = owners;
+		this.redisTemplate = redisTemplate;
+		hashOperations = redisTemplate.opsForHash();
+		List<PetType> petTypes = pets.findPetTypes();
+		for (PetType petType : petTypes)
+			hashOperations.put("PETTYPES", petType.getId(), petType);
 	}
 
 	@ModelAttribute("types")
@@ -52,7 +64,7 @@ class PetController {
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
-		return this.owners.findById(ownerId);
+		return (Owner) this.hashOperations.get("OWNER", ownerId);// this.owners.findById(ownerId);
 	}
 
 	@InitBinder("owner")
@@ -85,13 +97,16 @@ class PetController {
 		}
 		else {
 			this.pets.save(pet);
+			this.hashOperations.put("PETS", pet.getId(), pet);
 			return "redirect:/owners/{ownerId}";
 		}
 	}
 
 	@GetMapping("/pets/{petId}/edit")
 	public String initUpdateForm(@PathVariable("petId") int petId, ModelMap model) {
-		Pet pet = this.pets.findById(petId);
+		Pet pet = (Pet) this.hashOperations.get("PETS", petId);
+		if (pet == null)
+			pet = this.pets.findById(petId);
 		model.put("pet", pet);
 		return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 	}
@@ -105,6 +120,7 @@ class PetController {
 		}
 		else {
 			owner.addPet(pet);
+			this.hashOperations.put("PETS", pet.getId(), pet);
 			this.pets.save(pet);
 			return "redirect:/owners/{ownerId}";
 		}

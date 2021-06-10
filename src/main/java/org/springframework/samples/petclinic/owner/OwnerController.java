@@ -101,7 +101,11 @@ class OwnerController {
 		Map<String, Owner> resultsMap = this.hashOperations.entries("OWNER");
 		Collection<Owner> results = new ArrayList<Owner>();
 		for (Map.Entry<String, Owner> mp : resultsMap.entrySet()) {
-			results.add(mp.getValue());
+			if (owner.getLastName().length() == 0 || mp.getValue().getLastName().contains(owner.getLastName()))
+				results.add(mp.getValue());
+		}
+		if (results.isEmpty()) {
+			results = this.owners.findByLastName(owner.getLastName());
 		}
 		if (results.isEmpty()) {
 			// no owners found
