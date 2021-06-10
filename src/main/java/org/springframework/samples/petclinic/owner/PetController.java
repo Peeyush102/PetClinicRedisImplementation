@@ -64,7 +64,11 @@ class PetController {
 
 	@ModelAttribute("owner")
 	public Owner findOwner(@PathVariable("ownerId") int ownerId) {
-		return (Owner) this.hashOperations.get("OWNER", ownerId);// this.owners.findById(ownerId);
+		Owner ownerVal = (Owner) this.hashOperations.get("OWNER", ownerId);
+		System.out.println(ownerVal.getId());
+		if (ownerVal == null)
+			ownerVal = this.owners.findById(ownerId);
+		return ownerVal;
 	}
 
 	@InitBinder("owner")
@@ -90,13 +94,17 @@ class PetController {
 		if (StringUtils.hasLength(pet.getName()) && pet.isNew() && owner.getPet(pet.getName(), true) != null) {
 			result.rejectValue("name", "duplicate", "already exists");
 		}
+		System.out.println("New pet " + owner.getId());
 		owner.addPet(pet);
 		if (result.hasErrors()) {
 			model.put("pet", pet);
 			return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 		}
 		else {
+
+			pet.setId((this.hashOperations.getOperations().getKeySerializer().hashCode()));
 			this.pets.save(pet);
+			System.out.println("PET ID : " + pet.getId());
 			this.hashOperations.put("PETS", pet.getId(), pet);
 			return "redirect:/owners/{ownerId}";
 		}
@@ -105,8 +113,8 @@ class PetController {
 	@GetMapping("/pets/{petId}/edit")
 	public String initUpdateForm(@PathVariable("petId") int petId, ModelMap model) {
 		Pet pet = (Pet) this.hashOperations.get("PETS", petId);
-		if (pet == null)
-			pet = this.pets.findById(petId);
+		// if (pet == null)
+		// pet = this.pets.findById(petId);
 		model.put("pet", pet);
 		return VIEWS_PETS_CREATE_OR_UPDATE_FORM;
 	}
@@ -120,8 +128,9 @@ class PetController {
 		}
 		else {
 			owner.addPet(pet);
-			this.hashOperations.put("PETS", pet.getId(), pet);
+			System.out.println("Pet id :" + pet.getId());
 			this.pets.save(pet);
+			this.hashOperations.put("PETS", pet.getId(), pet);
 			return "redirect:/owners/{ownerId}";
 		}
 	}

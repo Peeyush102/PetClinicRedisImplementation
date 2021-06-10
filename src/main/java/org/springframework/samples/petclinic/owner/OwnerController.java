@@ -78,7 +78,9 @@ class OwnerController {
 			return VIEWS_OWNER_CREATE_OR_UPDATE_FORM;
 		}
 		else {
+			System.out.println("Id1 : " + owner.getId());
 			this.owners.save(owner);
+			System.out.println("Id2 : " + owner.getId());
 			this.hashOperations.put("OWNER", owner.getId(), owner);
 			return "redirect:/owners/" + owner.getId();
 		}

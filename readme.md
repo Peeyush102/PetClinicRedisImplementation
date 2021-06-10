@@ -6,7 +6,21 @@
 ## Running petclinic locally
 Petclinic is a [Spring Boot](https://spring.io/guides/gs/spring-boot) application built using [Maven](https://spring.io/guides/gs/maven/). You can build a jar file and run it from the command line:
 
+Please note that redis server should also be started manually -
+```
+#To download and install redis in your machine
+$ wget https://download.redis.io/releases/redis-6.2.4.tar.gz
+$ tar xzf redis-6.2.4.tar.gz
+$ cd redis-6.2.4
+$ make
+```
+Start Redis server 
+```
+src/redis-server
+```
+Please copy the redis port number and paste it in file PetClinicApplication.
 
+Cloning the project
 ```
 git clone https://github.com/spring-projects/spring-petclinic.git
 cd spring-petclinic
